@@ -1,0 +1,82 @@
+{
+  "projectType": "saas",
+  "projectName": "Locker Management",
+  "projectDescription": "A full-stack locker management system for tracking locker assignments to employees with visual dashboard",
+  "theme": "mint",
+  "primaryColor": "#3B82F6",
+  "lightColor": "#60A5FA",
+  "darkColor": "#1E40AF",
+  "navigation": {
+    "tabs": [
+      {
+        "tab": "Documentation",
+        "groups": [
+          {
+            "group": "Get Started",
+            "pages": [
+              "introduction",
+              "quickstart"
+            ]
+          },
+          {
+            "group": "Core Features",
+            "pages": [
+              "features/dashboard",
+              "features/locker-management",
+              "features/employee-tracking"
+            ]
+          },
+          {
+            "group": "Development",
+            "pages": [
+              "development/architecture",
+              "development/setup",
+              "development/database"
+            ]
+          }
+        ]
+      },
+      {
+        "tab": "API Reference",
+        "groups": [
+          {
+            "group": "Overview",
+            "pages": [
+              "api/introduction"
+            ]
+          },
+          {
+            "group": "Endpoints",
+            "pages": [
+              "api/lockers/get-all",
+              "api/lockers/get-single",
+              "api/lockers/create",
+              "api/lockers/update",
+              "api/lockers/delete"
+            ]
+          },
+          {
+            "group": "Models",
+            "pages": [
+              "api/models/locker-info"
+            ]
+          }
+        ]
+      }
+    ]
+  },
+  "keyFeatures": [
+    "CRUD operations for locker management",
+    "Visual dashboard with color-coded availability indicators",
+    "Employee-to-locker assignment tracking",
+    "RESTful API with Swagger documentation",
+    "Real-time locker status monitoring"
+  ],
+  "publicApiSurface": [
+    "GET /api/lockers",
+    "GET /api/lockers/{lockerNo}",
+    "POST /api/lockers",
+    "PUT /api/lockers/{lockerNo}",
+    "DELETE /api/lockers/{lockerNo}"
+  ]
+}
