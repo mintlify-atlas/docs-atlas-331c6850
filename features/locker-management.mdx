@@ -1,0 +1,346 @@
+---
+title: Locker Management
+description: Complete guide to creating, updating, and deleting lockers in the system
+---
+
+The Locker Management system provides full CRUD operations for managing locker inventory. This includes creating new lockers, updating existing information, and removing lockers from the system.
+
+## Creating New Lockers
+
+New lockers are created through a form that captures all required locker information.
+
+### Form Inputs
+
+The locker creation form includes four main fields:
+
+<CardGroup cols={2}>
+  <Card title="Locker No" icon="hashtag">
+    Unique identifier for the locker (required)
+  </Card>
+  <Card title="Size" icon="ruler">
+    Size dimension of the locker
+  </Card>
+  <Card title="Location" icon="location-dot">
+    Physical location of the locker
+  </Card>
+  <Card title="Employee Number" icon="user">
+    Employee ID to assign the locker (optional)
+  </Card>
+</CardGroup>
+
+### Form Implementation
+
+The form uses Angular's two-way data binding with `ngModel`:
+
+```html app.component.html:5-28
+<form #form="ngForm" (ngSubmit)="onSubmit()">
+  <div class="form-group">
+    <label for="">Locker No</label>
+    <input type="text" name="lockerNo" [(ngModel)]="locker.lockerNo">
+  </div>
+  <div class="form-group form-group-inline">
+    <div>
+      <label for="">Size</label>
+      <input type="text" name="lockerSize" [(ngModel)]="locker.size">
+    </div>
+    <div class="form-group">
+      <label for="">Location</label>
+      <input type="text" name="location" [(ngModel)]="locker.location">
+    </div>
+  </div>
+  <div class="form-group">
+    <label for="">Employee No</label>
+    <input type="text" name="empNo" [(ngModel)]="locker.employeeNumber">
+  </div>
+  <div class="form-group">
+    <button>Save</button>
+  </div>
+</form>
+```
+
+### Submit Handler
+
+When the form is submitted, the locker is added via the API and the form is reset:
+
+<CodeGroup>
+```typescript app.component.ts:38-62
+onSubmit() {
+  this.lockersService.addLocker(this.locker)
+    .subscribe(
+      response => {
+        this.getAllLockers();
+        this.locker = {
+          employeeNumber: '',
+          lockerNo: '',
+          size: 0,
+          location: '',
+          isEmpty: true
+        }
+      } 
+    )
+}
+```
+
+```typescript lockers.service.ts:21-24
+// add locker
+addLocker(locker: Locker): Observable<Locker> {
+  return this.http.post<Locker>(this.baseUrl, locker);
+}
+```
+</CodeGroup>
+
+### Backend Logic
+
+The API endpoint validates the request and automatically sets the `IsEmpty` status:
+
+```csharp LockersController.cs:41-76
+[HttpPost]
+public async Task<IActionResult> AddLocker([FromBody] LockerInfo locker)
+{
+    var empNumberExist = await lockersDbContext.Lockers
+                        .Where(x => x.EmployeeNumber == locker.EmployeeNumber && !x.EmployeeNumber.Equals(string.Empty))
+                        .Select(x => x.EmployeeNumber).ToListAsync();
+
+    var lockerNumberExist = await lockersDbContext.Lockers
+                        .Where(x => x.LockerNo == locker.LockerNo)
+                        .Select(x => x.EmployeeNumber).ToListAsync();
+
+    if (empNumberExist.Any())
+    {
+        var message = new Exception($"Employee number {locker.EmployeeNumber} already exists");
+
+        return BadRequest(message);
+    }
+    else if (lockerNumberExist.Any())
+    {
+        var message = new Exception($"Locker number {locker.LockerNo} already exists");
+
+        return BadRequest(message);
+    }
+    else
+    {
+        // if the input of employee number is not null, then the value isEmpty is false
+        locker.IsEmpty = locker.EmployeeNumber != string.Empty ? false : true;
+
+        await lockersDbContext.Lockers.AddAsync(locker);
+        await lockersDbContext.SaveChangesAsync();
+
+        return CreatedAtAction(nameof(GetLocker), new { locker.IsEmpty }, locker);
+    }
+    
+}
+```
+
+<Note>
+The `IsEmpty` field is automatically calculated based on whether an employee number is provided:
+- If `EmployeeNumber` is empty, `IsEmpty` = `true`
+- If `EmployeeNumber` has a value, `IsEmpty` = `false`
+</Note>
+
+## Updating Locker Information
+
+Existing lockers can be updated by clicking on the locker number in the dashboard, modifying the form, and submitting.
+
+### Populate Form for Editing
+
+Clicking a locker number populates the form with current data:
+
+```typescript app.component.ts:73-75
+populateForm(locker: Locker) {
+  this.locker = locker;
+}
+```
+
+### Update Process
+
+The update method sends the modified locker data to the API:
+
+<CodeGroup>
+```typescript app.component.ts:77-84
+updateLocker(locker: Locker) {
+  this.lockersService.updateLocker(locker)
+  .subscribe(
+    response => {
+      this.getAllLockers();
+    }
+  )
+}
+```
+
+```typescript lockers.service.ts:30-33
+//TODO: change method updateLocker with LockerNo 
+updateLocker(locker: Locker): Observable<Locker> {
+  return this.http.put<Locker>(this.baseUrl + '/' + locker.lockerNo, locker);
+}
+```
+</CodeGroup>
+
+### Backend Update Logic
+
+The API updates all locker fields and recalculates the `IsEmpty` status:
+
+```csharp LockersController.cs:78-100
+[HttpPut]
+[Route("{lockerNo}")]
+public async Task<IActionResult> UpdateLocker([FromRoute] string lockerNo, [FromBody] LockerInfo locker)
+{
+    var existingLocker = await lockersDbContext.Lockers.FirstOrDefaultAsync(x => x.LockerNo == lockerNo);
+
+    if (existingLocker != null)
+    {
+        existingLocker.EmployeeNumber = locker.EmployeeNumber;
+        existingLocker.LockerNo = locker.LockerNo;
+        existingLocker.Size = locker.Size;
+        existingLocker.Location = locker.Location;
+        existingLocker.IsEmpty = locker.EmployeeNumber != string.Empty ? false : true;
+
+        await lockersDbContext.SaveChangesAsync();
+
+        return Ok(existingLocker);
+    }
+
+    return NotFound("Locker not found");
+}
+```
+
+<Info>
+All fields are updateable, including the locker number itself. The `IsEmpty` status is automatically recalculated during updates.
+</Info>
+
+## Deleting Lockers
+
+Lockers can be removed from the system using the delete action on each locker card.
+
+### Delete Operation
+
+The delete operation uses the locker number as the identifier:
+
+<CodeGroup>
+```typescript app.component.ts:64-71
+deleteLocker(lockerNo: string) {
+  this.lockersService.deleteLocker(lockerNo)
+  .subscribe(
+    response => {
+      this.getAllLockers();
+    }
+  );
+}
+```
+
+```typescript lockers.service.ts:26-28
+deleteLocker(lockerNo: string): Observable<Locker> {
+  return this.http.delete<Locker>(this.baseUrl + '/' + lockerNo);
+}
+```
+</CodeGroup>
+
+### Backend Delete Logic
+
+The API removes the locker from the database:
+
+```csharp LockersController.cs:102-118
+[HttpDelete]
+[Route("{lockerNo}")]
+public async Task<IActionResult> DeleteLocker([FromRoute] string lockerNo)
+{
+    var existingLocker = await lockersDbContext.Lockers.FirstOrDefaultAsync(x => x.LockerNo == lockerNo);
+
+    if (existingLocker != null)
+    {
+        lockersDbContext.Remove(existingLocker);
+        await lockersDbContext.SaveChangesAsync();
+
+        return Ok(existingLocker);
+    }
+
+    return NotFound("Locker not found");
+}
+```
+
+<Warning>
+Deletion is permanent and cannot be undone. The system does not currently implement soft deletes or a confirmation dialog.
+</Warning>
+
+## Validation Rules
+
+The system enforces critical validation rules to maintain data integrity.
+
+### Unique Locker Numbers
+
+Each locker must have a unique locker number. The system checks for duplicates before creation:
+
+```csharp LockersController.cs:49-51
+var lockerNumberExist = await lockersDbContext.Lockers
+                    .Where(x => x.LockerNo == locker.LockerNo)
+                    .Select(x => x.EmployeeNumber).ToListAsync();
+```
+
+If a duplicate is found:
+
+```csharp LockersController.cs:59-64
+else if (lockerNumberExist.Any())
+{
+    var message = new Exception($"Locker number {locker.LockerNo} already exists");
+
+    return BadRequest(message);
+}
+```
+
+### Unique Employee Assignments
+
+An employee can only be assigned to one locker at a time. The system validates this rule:
+
+```csharp LockersController.cs:45-47
+var empNumberExist = await lockersDbContext.Lockers
+                    .Where(x => x.EmployeeNumber == locker.EmployeeNumber && !x.EmployeeNumber.Equals(string.Empty))
+                    .Select(x => x.EmployeeNumber).ToListAsync();
+```
+
+<Note>
+Empty employee numbers are excluded from the uniqueness check, allowing multiple unassigned lockers.
+</Note>
+
+If an employee is already assigned:
+
+```csharp LockersController.cs:53-58
+if (empNumberExist.Any())
+{
+    var message = new Exception($"Employee number {locker.EmployeeNumber} already exists");
+
+    return BadRequest(message);
+}
+```
+
+## API Endpoints
+
+The Locker Management API is built with ASP.NET Core and provides RESTful endpoints:
+
+<CardGroup cols={2}>
+  <Card title="GET /api/lockers" icon="list">
+    Retrieve all lockers (sorted by locker number)
+  </Card>
+  <Card title="GET /api/lockers/{lockerNo}" icon="magnifying-glass">
+    Retrieve a specific locker by number
+  </Card>
+  <Card title="POST /api/lockers" icon="plus">
+    Create a new locker
+  </Card>
+  <Card title="PUT /api/lockers/{lockerNo}" icon="pen">
+    Update an existing locker
+  </Card>
+  <Card title="DELETE /api/lockers/{lockerNo}" icon="trash">
+    Delete a locker by number
+  </Card>
+</CardGroup>
+
+### Service Configuration
+
+The Angular service connects to the API:
+
+```typescript lockers.service.ts:11
+baseUrl = 'https://localhost:7281/api/lockers';
+```
+
+<Info>
+The base URL should be configured based on your environment (development, staging, production).
+</Info>

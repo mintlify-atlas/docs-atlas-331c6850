@@ -1,0 +1,307 @@
+---
+title: 'Development Setup'
+description: 'Step-by-step guide to set up the Locker Management system for local development'
+---
+
+## Prerequisites
+
+Before setting up the project, ensure you have the following installed:
+
+<CardGroup cols={2}>
+  <Card title=".NET SDK" icon="code">
+    .NET 6.0 SDK or later
+  </Card>
+  <Card title="Node.js" icon="node-js">
+    Node.js 14.x or later with npm
+  </Card>
+  <Card title="SQL Server" icon="database">
+    SQL Server LocalDB or SQL Server Express
+  </Card>
+  <Card title="Code Editor" icon="laptop-code">
+    Visual Studio 2022, VS Code, or Rider
+  </Card>
+</CardGroup>
+
+## Project Structure
+
+The project is organized into two main directories:
+
+```
+workspace/source/
+├── API/Locker/Locker.API/     # .NET Core Web API
+└── UI/locker/                  # Angular 14 Application
+```
+
+## Backend Setup (API)
+
+### 1. Navigate to the API Directory
+
+```bash
+cd ~/workspace/source/API/Locker/Locker.API
+```
+
+### 2. Restore NuGet Packages
+
+```bash
+dotnet restore
+```
+
+This will install the following packages:
+- Microsoft.EntityFrameworkCore (6.0.8)
+- Microsoft.EntityFrameworkCore.SqlServer (6.0.8)
+- Microsoft.EntityFrameworkCore.Tools (6.0.8)
+- Swashbuckle.AspNetCore (6.2.3)
+
+### 3. Configure Database Connection
+
+The default connection string is configured in `appsettings.json`:
+
+```json appsettings.json
+{
+  "ConnectionStrings": {
+    "LockersDbConnectionString": "server=(LocalDB)\\MSSQLLocalDB;database=LockerDb;Trusted_Connection=true"
+  }
+}
+```
+
+<Tip>
+If you're using a different SQL Server instance, update the connection string accordingly. For SQL Server Express, use: `server=.\\SQLEXPRESS;database=LockerDb;Trusted_Connection=true`
+</Tip>
+
+### 4. Apply Database Migrations
+
+Create or update the database schema using Entity Framework migrations:
+
+```bash
+dotnet ef database update
+```
+
+This will apply the following migrations in order:
+1. `20220816105919_initial` - Creates initial Lockers table
+2. `20220817035755_updateModels` - Adds LockerNo and Size fields
+3. `20220817035954_addEmployeeModel` - Adds Employees table
+4. `20221001042152_updateLockerModel` - Sets LockerNo as primary key
+
+<Note>
+The database will be created automatically if it doesn't exist.
+</Note>
+
+### 5. Run the API
+
+Start the backend API server:
+
+```bash
+dotnet run
+```
+
+The API will start on:
+- HTTPS: `https://localhost:7281`
+- HTTP: `http://localhost:5281`
+- Swagger UI: `https://localhost:7281/swagger`
+
+<Check>
+Verify the API is running by navigating to the Swagger UI in your browser.
+</Check>
+
+### Alternative: Visual Studio
+
+If using Visual Studio 2022:
+
+1. Open `Locker.API.sln`
+2. Press F5 or click "Run"
+3. The API will launch with Swagger UI
+
+## Frontend Setup (UI)
+
+### 1. Navigate to the UI Directory
+
+```bash
+cd ~/workspace/source/UI/locker
+```
+
+### 2. Install npm Dependencies
+
+```bash
+npm install
+```
+
+This will install Angular 14 and all required dependencies:
+- @angular/core (^14.0.0)
+- @angular/common (^14.0.0)
+- @angular/forms (^14.0.0)
+- @angular/router (^14.0.0)
+- rxjs (~7.5.0)
+
+### 3. Configure API Endpoint
+
+The Angular service is configured to connect to the API at:
+
+```typescript lockers.service.ts
+export class LockersService {
+  baseUrl = 'https://localhost:7281/api/lockers';
+  // ...
+}
+```
+
+<Warning>
+Ensure this URL matches your API configuration. If you changed the API port, update this value accordingly.
+</Warning>
+
+### 4. Run the Angular Application
+
+Start the development server:
+
+```bash
+npm start
+```
+
+Or using Angular CLI directly:
+
+```bash
+ng serve
+```
+
+The application will be available at:
+- Local: `http://localhost:4200`
+
+<Check>
+The Angular app will automatically open in your browser at `http://localhost:4200`
+</Check>
+
+## Running Both Services
+
+To run the full application, you need both the backend API and frontend UI running simultaneously.
+
+### Option 1: Two Terminal Windows
+
+**Terminal 1 - Backend:**
+```bash
+cd ~/workspace/source/API/Locker/Locker.API
+dotnet run
+```
+
+**Terminal 2 - Frontend:**
+```bash
+cd ~/workspace/source/UI/locker
+npm start
+```
+
+### Option 2: Using VS Code
+
+1. Open the workspace root in VS Code
+2. Use the integrated terminal to run both commands
+3. Split the terminal to view both outputs
+
+## Verifying the Setup
+
+### 1. Test the Backend API
+
+Open your browser and navigate to:
+```
+https://localhost:7281/swagger
+```
+
+You should see the Swagger UI with the following endpoints:
+- `GET /api/lockers` - Get all lockers
+- `GET /api/lockers/{lockerNo}` - Get a specific locker
+- `POST /api/lockers` - Create a new locker
+- `PUT /api/lockers/{lockerNo}` - Update a locker
+- `DELETE /api/lockers/{lockerNo}` - Delete a locker
+
+### 2. Test the Frontend
+
+Navigate to:
+```
+http://localhost:4200
+```
+
+You should see the Locker Management UI.
+
+### 3. Test End-to-End Communication
+
+1. Open the Angular app at `http://localhost:4200`
+2. Try creating a new locker
+3. Verify the data appears in the list
+
+If successful, the CORS configuration is working correctly.
+
+## Common Issues and Solutions
+
+<AccordionGroup>
+  <Accordion title="Database Connection Failed">
+    **Problem**: Unable to connect to SQL Server LocalDB
+    
+    **Solution**:
+    - Verify SQL Server LocalDB is installed: `sqllocaldb info`
+    - Start LocalDB: `sqllocaldb start MSSQLLocalDB`
+    - Check connection string in `appsettings.json`
+  </Accordion>
+
+  <Accordion title="CORS Error in Browser">
+    **Problem**: Browser shows CORS policy error when calling API
+    
+    **Solution**:
+    - Ensure the API is running before starting the Angular app
+    - Verify CORS policy in `Program.cs` includes `AllowAnyOrigin()`
+    - Check that `app.UseCors("default")` is called in the middleware pipeline
+  </Accordion>
+
+  <Accordion title="Port Already in Use">
+    **Problem**: Port 7281 or 4200 is already in use
+    
+    **Solution**:
+    - For API: Edit `launchSettings.json` and change the `applicationUrl` ports
+    - For Angular: Run `ng serve --port 4300` to use a different port
+    - Update the API URL in `lockers.service.ts` if you change the API port
+  </Accordion>
+
+  <Accordion title="Migration Failed">
+    **Problem**: `dotnet ef database update` fails
+    
+    **Solution**:
+    - Ensure EF Core tools are installed: `dotnet tool install --global dotnet-ef`
+    - Check that SQL Server is running
+    - Verify the connection string is correct
+    - Try creating the database manually first
+  </Accordion>
+
+  <Accordion title="npm install Errors">
+    **Problem**: npm install fails or shows vulnerabilities
+    
+    **Solution**:
+    - Clear npm cache: `npm cache clean --force`
+    - Delete `node_modules` and `package-lock.json`
+    - Run `npm install` again
+    - For vulnerabilities: `npm audit fix`
+  </Accordion>
+</AccordionGroup>
+
+## Development Workflow
+
+Once both services are running:
+
+1. **Make Backend Changes**:
+   - Edit C# files in `API/Locker/Locker.API/`
+   - The API will automatically reload (hot reload in .NET 6)
+   - Refresh Swagger UI to see changes
+
+2. **Make Frontend Changes**:
+   - Edit TypeScript files in `UI/locker/src/`
+   - Angular CLI will automatically recompile
+   - Browser will auto-refresh
+
+3. **Database Changes**:
+   - Modify models in `Models/LockerInfo.cs`
+   - Create migration: `dotnet ef migrations add MigrationName`
+   - Apply migration: `dotnet ef database update`
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Architecture" icon="sitemap" href="/development/architecture">
+    Learn about the system architecture
+  </Card>
+  <Card title="Database" icon="database" href="/development/database">
+    Explore the database schema
+  </Card>
+</CardGroup>

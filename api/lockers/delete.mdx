@@ -1,0 +1,68 @@
+---
+title: "Delete Locker"
+api: "DELETE /api/lockers/{lockerNo}"
+description: "Delete a locker from the system"
+---
+
+## HTTP Method and Path
+
+```
+DELETE /api/lockers/{lockerNo}
+```
+
+## Path Parameters
+
+<ParamField path="lockerNo" type="string" required>
+  The unique locker number of the locker to delete
+</ParamField>
+
+## Response
+
+Returns the deleted locker object.
+
+<ResponseField name="lockerNo" type="string" required>
+  The unique locker number identifier
+</ResponseField>
+
+<ResponseField name="employeeNumber" type="string">
+  The employee number that was assigned to this locker
+</ResponseField>
+
+<ResponseField name="size" type="integer" required>
+  The size of the locker
+</ResponseField>
+
+<ResponseField name="location" type="string" required>
+  The physical location of the locker
+</ResponseField>
+
+<ResponseField name="isEmpty" type="boolean" required>
+  Indicates whether the locker was empty
+</ResponseField>
+
+## Example Request
+
+```bash cURL
+curl -X DELETE https://api.example.com/api/lockers/A001 \
+  -H "Content-Type: application/json"
+```
+
+## Example Response
+
+### Success (200 OK)
+
+```json
+{
+  "lockerNo": "A001",
+  "employeeNumber": "EMP12345",
+  "size": 2,
+  "location": "Building A - Floor 1",
+  "isEmpty": false
+}
+```
+
+### Error (404 Not Found)
+
+```json
+"Locker not found"
+```

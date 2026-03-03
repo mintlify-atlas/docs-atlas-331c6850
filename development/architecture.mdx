@@ -1,0 +1,258 @@
+---
+title: 'System Architecture'
+description: 'Overview of the Locker Management system architecture and technology stack'
+---
+
+## Overview
+
+The Locker Management system is a full-stack SaaS application built with a modern, decoupled architecture consisting of:
+
+- **Backend**: ASP.NET Core 6.0 Web API
+- **Frontend**: Angular 14 single-page application
+- **Database**: SQL Server with Entity Framework Core
+- **API Documentation**: Swagger/OpenAPI
+
+## Architecture Diagram
+
+```
+┌─────────────────┐         ┌──────────────────┐         ┌─────────────────┐
+│   Angular 14    │ HTTPS   │  ASP.NET Core    │   EF    │   SQL Server    │
+│    Frontend     ├────────►│    Web API       │◄────────┤   Database      │
+│  (Port 4200)    │  CORS   │  (Port 7281)     │  Core   │   (LocalDB)     │
+└─────────────────┘         └──────────────────┘         └─────────────────┘
+```
+
+## Backend Architecture
+
+### ASP.NET Core Web API
+
+The backend is built with ASP.NET Core 6.0 using minimal APIs and dependency injection.
+
+**Key Components:**
+- **Controllers**: RESTful API endpoints (`LockersController`)
+- **Data Layer**: Entity Framework Core with DbContext
+- **Models**: Entity models representing database tables
+- **Migrations**: Database schema versioning
+
+### Application Configuration
+
+The application is configured in `Program.cs` with the following services:
+
+```csharp Program.cs
+var builder = WebApplication.CreateBuilder(args);
+
+// Add services to the container
+builder.Services.AddControllers();
+builder.Services.AddEndpointsApiExplorer();
+builder.Services.AddSwaggerGen();
+
+// Inject DbContext
+builder.Services.AddDbContext<LockersDbContext>(x => 
+x.UseSqlServer(builder.Configuration.GetConnectionString("LockersDbConnectionString")));
+
+// Add CORS policy to access from UI
+builder.Services.AddCors((setup) =>
+{
+    setup.AddPolicy("default", (options) =>
+    {
+        options.AllowAnyMethod().AllowAnyHeader().AllowAnyOrigin();
+    });
+});
+```
+
+### NuGet Packages
+
+```xml Locker.API.csproj
+<PackageReference Include="Microsoft.EntityFrameworkCore" Version="6.0.8" />
+<PackageReference Include="Microsoft.EntityFrameworkCore.SqlServer" Version="6.0.8" />
+<PackageReference Include="Microsoft.EntityFrameworkCore.Tools" Version="6.0.8" />
+<PackageReference Include="Swashbuckle.AspNetCore" Version="6.2.3" />
+```
+
+### API Endpoints
+
+The API exposes the following RESTful endpoints at `/api/lockers`:
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| GET | `/api/lockers` | Get all lockers |
+| GET | `/api/lockers/{lockerNo}` | Get a specific locker |
+| POST | `/api/lockers` | Create a new locker |
+| PUT | `/api/lockers/{lockerNo}` | Update a locker |
+| DELETE | `/api/lockers/{lockerNo}` | Delete a locker |
+
+<Note>
+The API runs on HTTPS port 7281 and HTTP port 5281 in development mode.
+</Note>
+
+## Frontend Architecture
+
+### Angular 14 Application
+
+The frontend is a single-page application built with Angular 14.
+
+**Project Structure:**
+```
+UI/locker/src/
+├── app/
+│   ├── models/           # TypeScript interfaces
+│   ├── service/          # HTTP services
+│   ├── app.component.*   # Main component
+│   └── app.module.ts     # Root module
+└── environments/         # Environment configuration
+```
+
+### Angular Dependencies
+
+```json package.json
+{
+  "dependencies": {
+    "@angular/animations": "^14.0.0",
+    "@angular/common": "^14.0.0",
+    "@angular/compiler": "^14.0.0",
+    "@angular/core": "^14.0.0",
+    "@angular/forms": "^14.0.0",
+    "@angular/platform-browser": "^14.0.0",
+    "@angular/platform-browser-dynamic": "^14.0.0",
+    "@angular/router": "^14.0.0",
+    "rxjs": "~7.5.0",
+    "zone.js": "~0.11.4"
+  }
+}
+```
+
+### HTTP Communication
+
+The Angular frontend communicates with the backend API using `HttpClient`:
+
+```typescript lockers.service.ts
+@Injectable({
+  providedIn: 'root'
+})
+export class LockersService {
+  baseUrl = 'https://localhost:7281/api/lockers';
+
+  constructor(private http: HttpClient) { }
+
+  // Get all lockers
+  getAllLockers(): Observable<Locker[]> {
+    return this.http.get<Locker[]>(this.baseUrl);
+  }
+
+  // Add locker
+  addLocker(locker: Locker): Observable<Locker> {
+    return this.http.post<Locker>(this.baseUrl, locker);
+  }
+
+  // Update locker
+  updateLocker(locker: Locker): Observable<Locker> {
+    return this.http.put<Locker>(this.baseUrl + '/' + locker.lockerNo, locker);
+  }
+
+  // Delete locker
+  deleteLocker(lockerNo: string): Observable<Locker> {
+    return this.http.delete<Locker>(this.baseUrl + '/' + lockerNo);
+  }
+}
+```
+
+## CORS Configuration
+
+To enable cross-origin requests from the Angular frontend to the .NET backend, CORS is configured to allow any origin, method, and header:
+
+```csharp Program.cs
+builder.Services.AddCors((setup) =>
+{
+    setup.AddPolicy("default", (options) =>
+    {
+        options.AllowAnyMethod().AllowAnyHeader().AllowAnyOrigin();
+    });
+});
+
+// ...
+
+app.UseCors("default");
+```
+
+<Warning>
+In production, you should restrict CORS to specific origins rather than allowing any origin.
+</Warning>
+
+## Database Layer
+
+### Entity Framework Core
+
+The application uses Entity Framework Core 6.0 for data access with SQL Server.
+
+**DbContext:**
+```csharp LockersDbContext.cs
+public class LockersDbContext : DbContext
+{
+    public LockersDbContext(DbContextOptions options) : base(options)
+    {
+    }
+
+    // DbSet
+    public DbSet<LockerInfo> Lockers { get; set; }
+}
+```
+
+### Connection String
+
+The database connection is configured in `appsettings.json`:
+
+```json appsettings.json
+{
+  "ConnectionStrings": {
+    "LockersDbConnectionString": "server=(LocalDB)\\MSSQLLocalDB;database=LockerDb;Trusted_Connection=true"
+  }
+}
+```
+
+## Development Tools
+
+### Swagger/OpenAPI
+
+The API includes Swagger UI for interactive API documentation and testing:
+
+```csharp Program.cs
+if (app.Environment.IsDevelopment())
+{
+    app.UseSwagger();
+    app.UseSwaggerUI();
+}
+```
+
+Access Swagger UI at: `https://localhost:7281/swagger`
+
+### Launch Configuration
+
+The API is configured to launch with Swagger UI:
+
+```json launchSettings.json
+{
+  "profiles": {
+    "Locker.API": {
+      "commandName": "Project",
+      "launchBrowser": true,
+      "launchUrl": "swagger",
+      "applicationUrl": "https://localhost:7281;http://localhost:5281",
+      "environmentVariables": {
+        "ASPNETCORE_ENVIRONMENT": "Development"
+      }
+    }
+  }
+}
+```
+
+## Technology Stack Summary
+
+| Layer | Technology | Version |
+|-------|-----------|---------|
+| Backend Framework | ASP.NET Core | 6.0 |
+| Frontend Framework | Angular | 14.0 |
+| ORM | Entity Framework Core | 6.0.8 |
+| Database | SQL Server | LocalDB |
+| API Documentation | Swagger/Swashbuckle | 6.2.3 |
+| Language (Backend) | C# | 10.0 |
+| Language (Frontend) | TypeScript | 4.7.2 |

@@ -1,0 +1,127 @@
+---
+title: "Create Locker"
+api: "POST /api/lockers"
+description: "Create a new locker in the system"
+---
+
+## HTTP Method and Path
+
+```
+POST /api/lockers
+```
+
+## Request Body
+
+<ParamField body="lockerNo" type="string" required>
+  The unique locker number identifier. Must be unique across all lockers.
+</ParamField>
+
+<ParamField body="employeeNumber" type="string">
+  The employee number to assign to this locker. Must be unique if provided and not empty. Leave empty for unassigned lockers.
+</ParamField>
+
+<ParamField body="size" type="integer" required>
+  The size of the locker
+</ParamField>
+
+<ParamField body="location" type="string" required>
+  The physical location of the locker
+</ParamField>
+
+<ParamField body="isEmpty" type="boolean">
+  Whether the locker is empty. This value is automatically calculated based on the employeeNumber field (false if employeeNumber is provided, true if empty).
+</ParamField>
+
+## Validation Rules
+
+- **Unique Locker Number**: The `lockerNo` must be unique. If a locker with the same number already exists, the request will return a 400 Bad Request error.
+- **Unique Employee Number**: The `employeeNumber` must be unique if provided and not empty. If an employee number is already assigned to another locker, the request will return a 400 Bad Request error.
+- **Auto-calculated isEmpty**: The `isEmpty` field is automatically set based on whether an `employeeNumber` is provided.
+
+## Response
+
+Returns the created locker object.
+
+<ResponseField name="lockerNo" type="string" required>
+  The unique locker number identifier
+</ResponseField>
+
+<ResponseField name="employeeNumber" type="string">
+  The employee number assigned to this locker
+</ResponseField>
+
+<ResponseField name="size" type="integer" required>
+  The size of the locker
+</ResponseField>
+
+<ResponseField name="location" type="string" required>
+  The physical location of the locker
+</ResponseField>
+
+<ResponseField name="isEmpty" type="boolean" required>
+  Indicates whether the locker is currently empty
+</ResponseField>
+
+## Example Request
+
+### Creating an assigned locker
+
+```bash cURL
+curl -X POST https://api.example.com/api/lockers \
+  -H "Content-Type: application/json" \
+  -d '{
+    "lockerNo": "A001",
+    "employeeNumber": "EMP12345",
+    "size": 2,
+    "location": "Building A - Floor 1"
+  }'
+```
+
+### Creating an empty locker
+
+```bash cURL
+curl -X POST https://api.example.com/api/lockers \
+  -H "Content-Type: application/json" \
+  -d '{
+    "lockerNo": "A002",
+    "employeeNumber": "",
+    "size": 1,
+    "location": "Building A - Floor 1"
+  }'
+```
+
+## Example Response
+
+### Success (201 Created)
+
+```json
+{
+  "lockerNo": "A001",
+  "employeeNumber": "EMP12345",
+  "size": 2,
+  "location": "Building A - Floor 1",
+  "isEmpty": false
+}
+```
+
+### Error - Duplicate Locker Number (400 Bad Request)
+
+```json
+{
+  "type": "https://tools.ietf.org/html/rfc7231#section-6.5.1",
+  "title": "Bad Request",
+  "status": 400,
+  "detail": "Locker number A001 already exists"
+}
+```
+
+### Error - Duplicate Employee Number (400 Bad Request)
+
+```json
+{
+  "type": "https://tools.ietf.org/html/rfc7231#section-6.5.1",
+  "title": "Bad Request",
+  "status": 400,
+  "detail": "Employee number EMP12345 already exists"
+}
+```

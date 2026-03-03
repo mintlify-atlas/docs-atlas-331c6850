@@ -1,0 +1,111 @@
+---
+title: "Update Locker"
+api: "PUT /api/lockers/{lockerNo}"
+description: "Update an existing locker's information"
+---
+
+## HTTP Method and Path
+
+```
+PUT /api/lockers/{lockerNo}
+```
+
+## Path Parameters
+
+<ParamField path="lockerNo" type="string" required>
+  The unique locker number of the locker to update
+</ParamField>
+
+## Request Body
+
+<ParamField body="lockerNo" type="string" required>
+  The locker number (can be updated to a new value)
+</ParamField>
+
+<ParamField body="employeeNumber" type="string">
+  The employee number to assign to this locker. Set to empty string to unassign.
+</ParamField>
+
+<ParamField body="size" type="integer" required>
+  The size of the locker
+</ParamField>
+
+<ParamField body="location" type="string" required>
+  The physical location of the locker
+</ParamField>
+
+<ParamField body="isEmpty" type="boolean">
+  Whether the locker is empty. This value is automatically calculated based on the employeeNumber field (false if employeeNumber is provided, true if empty).
+</ParamField>
+
+## Response
+
+Returns the updated locker object.
+
+<ResponseField name="lockerNo" type="string" required>
+  The unique locker number identifier
+</ResponseField>
+
+<ResponseField name="employeeNumber" type="string">
+  The employee number assigned to this locker
+</ResponseField>
+
+<ResponseField name="size" type="integer" required>
+  The size of the locker
+</ResponseField>
+
+<ResponseField name="location" type="string" required>
+  The physical location of the locker
+</ResponseField>
+
+<ResponseField name="isEmpty" type="boolean" required>
+  Indicates whether the locker is currently empty
+</ResponseField>
+
+## Example Request
+
+### Update locker assignment
+
+```bash cURL
+curl -X PUT https://api.example.com/api/lockers/A001 \
+  -H "Content-Type: application/json" \
+  -d '{
+    "lockerNo": "A001",
+    "employeeNumber": "EMP54321",
+    "size": 2,
+    "location": "Building A - Floor 1"
+  }'
+```
+
+### Unassign employee from locker
+
+```bash cURL
+curl -X PUT https://api.example.com/api/lockers/A001 \
+  -H "Content-Type: application/json" \
+  -d '{
+    "lockerNo": "A001",
+    "employeeNumber": "",
+    "size": 2,
+    "location": "Building A - Floor 1"
+  }'
+```
+
+## Example Response
+
+### Success (200 OK)
+
+```json
+{
+  "lockerNo": "A001",
+  "employeeNumber": "EMP54321",
+  "size": 2,
+  "location": "Building A - Floor 1",
+  "isEmpty": false
+}
+```
+
+### Error (404 Not Found)
+
+```json
+"Locker not found"
+```

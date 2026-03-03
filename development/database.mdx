@@ -1,0 +1,439 @@
+---
+title: 'Database Schema'
+description: 'Database structure, models, and migrations for the Locker Management system'
+---
+
+## Overview
+
+The Locker Management system uses SQL Server with Entity Framework Core 6.0 for data persistence. The database is managed through EF Core migrations to track schema changes over time.
+
+## Database Configuration
+
+### Connection String
+
+The database connection is configured in `appsettings.json`:
+
+```json appsettings.json
+{
+  "ConnectionStrings": {
+    "LockersDbConnectionString": "server=(LocalDB)\\MSSQLLocalDB;database=LockerDb;Trusted_Connection=true"
+  }
+}
+```
+
+<Info>
+The default configuration uses SQL Server LocalDB with Windows authentication. The database name is `LockerDb`.
+</Info>
+
+### DbContext Configuration
+
+The `LockersDbContext` is registered in `Program.cs` using dependency injection:
+
+```csharp Program.cs
+builder.Services.AddDbContext<LockersDbContext>(x => 
+    x.UseSqlServer(builder.Configuration.GetConnectionString("LockersDbConnectionString"))
+);
+```
+
+## DbContext
+
+The `LockersDbContext` class manages database operations:
+
+```csharp LockersDbContext.cs
+using Locker.API.Models;
+using Microsoft.EntityFrameworkCore;
+
+namespace Locker.API.Data
+{
+    public class LockersDbContext : DbContext
+    {
+        public LockersDbContext(DbContextOptions options) : base(options)
+        {
+        }
+
+        // DbSet
+        public DbSet<LockerInfo> Lockers { get; set; }
+    }
+}
+```
+
+<Note>
+The DbContext currently defines one `DbSet<LockerInfo>` for the Lockers table. Additional tables can be added by defining more DbSet properties.
+</Note>
+
+## Entity Models
+
+### LockerInfo Model
+
+The `LockerInfo` class represents a locker in the system:
+
+```csharp LockerInfo.cs
+using System.ComponentModel.DataAnnotations;
+
+namespace Locker.API.Models
+{
+    public class LockerInfo
+    {
+        [Key]
+        public string LockerNo { get; set; }
+        public string? EmployeeNumber { get; set; }        
+        public int Size { get; set; }
+        public string Location { get; set; }
+        public bool IsEmpty { get; set; }
+    }
+}
+```
+
+### Model Properties
+
+| Property | Type | Nullable | Description |
+|----------|------|----------|-------------|
+| `LockerNo` | string | No | Primary key - Unique locker identifier |
+| `EmployeeNumber` | string | Yes | Employee assigned to the locker (empty if unassigned) |
+| `Size` | int | No | Locker size (numeric value) |
+| `Location` | string | No | Physical location of the locker |
+| `IsEmpty` | bool | No | Indicates if the locker is available (true) or occupied (false) |
+
+<Tip>
+The `IsEmpty` field is automatically set based on whether an `EmployeeNumber` is assigned. When an employee number is provided, `IsEmpty` is set to `false`.
+</Tip>
+
+## Database Schema
+
+### Lockers Table
+
+The current schema for the `Lockers` table:
+
+```sql
+CREATE TABLE [Lockers] (
+    [LockerNo] nvarchar(450) NOT NULL,
+    [EmployeeNumber] nvarchar(max) NULL,
+    [Size] int NOT NULL,
+    [Location] nvarchar(max) NOT NULL,
+    [IsEmpty] bit NOT NULL,
+    CONSTRAINT [PK_Lockers] PRIMARY KEY ([LockerNo])
+);
+```
+
+### Primary Key
+
+The table uses `LockerNo` (string) as the primary key instead of a typical integer ID. This allows for human-readable locker identifiers like "A101", "B205", etc.
+
+## Migration History
+
+The database schema has evolved through four migrations:
+
+### 1. Initial Migration (2022-08-16)
+
+**Migration**: `20220816105919_initial`
+
+Created the initial `Lockers` table with the following structure:
+
+```csharp
+migrationBuilder.CreateTable(
+    name: "Lockers",
+    columns: table => new
+    {
+        Id = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
+        EmployeeNumber = table.Column<string>(type: "nvarchar(max)", nullable: true),
+        EmployeeName = table.Column<string>(type: "nvarchar(max)", nullable: true),
+        Location = table.Column<string>(type: "nvarchar(max)", nullable: false),
+        IsEmpty = table.Column<bool>(type: "bit", nullable: false)
+    },
+    constraints: table =>
+    {
+        table.PrimaryKey("PK_Lockers", x => x.Id);
+    });
+```
+
+**Changes**:
+- Created `Lockers` table with GUID primary key
+- Added `EmployeeNumber`, `EmployeeName`, `Location`, and `IsEmpty` fields
+
+### 2. Update Models (2022-08-17)
+
+**Migration**: `20220817035755_updateModels`
+
+Modified the schema to add locker identification and size:
+
+```csharp
+// Removed EmployeeName column
+migrationBuilder.DropColumn(
+    name: "EmployeeName",
+    table: "Lockers");
+
+// Added LockerNo column
+migrationBuilder.AddColumn<string>(
+    name: "LockerNo",
+    table: "Lockers",
+    type: "nvarchar(max)",
+    nullable: false,
+    defaultValue: "");
+
+// Added Size column
+migrationBuilder.AddColumn<int>(
+    name: "Size",
+    table: "Lockers",
+    type: "int",
+    nullable: false,
+    defaultValue: 0);
+```
+
+**Changes**:
+- Removed `EmployeeName` field (employee details stored separately)
+- Added `LockerNo` field for locker identification
+- Added `Size` field for locker dimensions
+
+### 3. Add Employee Model (2022-08-17)
+
+**Migration**: `20220817035954_addEmployeeModel`
+
+Created a separate `Employees` table:
+
+```csharp
+migrationBuilder.CreateTable(
+    name: "Employees",
+    columns: table => new
+    {
+        Id = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
+        EmployeeNumber = table.Column<string>(type: "nvarchar(max)", nullable: false),
+        EmployeeName = table.Column<string>(type: "nvarchar(max)", nullable: false),
+        Position = table.Column<string>(type: "nvarchar(max)", nullable: false),
+        Department = table.Column<string>(type: "nvarchar(max)", nullable: false)
+    },
+    constraints: table =>
+    {
+        table.PrimaryKey("PK_Employees", x => x.Id);
+    });
+```
+
+**Changes**:
+- Created `Employees` table with employee information
+- Prepared for normalized data structure
+
+<Note>
+This table was later removed in migration 4. The current implementation stores only the employee number in the Lockers table.
+</Note>
+
+### 4. Update Locker Model (2022-10-01)
+
+**Migration**: `20221001042152_updateLockerModel`
+
+Final schema changes to use `LockerNo` as the primary key:
+
+```csharp
+// Dropped Employees table
+migrationBuilder.DropTable(name: "Employees");
+
+// Dropped old primary key
+migrationBuilder.DropPrimaryKey(
+    name: "PK_Lockers",
+    table: "Lockers");
+
+// Removed GUID Id column
+migrationBuilder.DropColumn(
+    name: "Id",
+    table: "Lockers");
+
+// Changed LockerNo to be the primary key
+migrationBuilder.AlterColumn<string>(
+    name: "LockerNo",
+    table: "Lockers",
+    type: "nvarchar(450)",
+    nullable: false,
+    oldClrType: typeof(string),
+    oldType: "nvarchar(max)");
+
+// Added new primary key on LockerNo
+migrationBuilder.AddPrimaryKey(
+    name: "PK_Lockers",
+    table: "Lockers",
+    column: "LockerNo");
+```
+
+**Changes**:
+- Removed `Employees` table (simplified to single table design)
+- Removed GUID `Id` column
+- Made `LockerNo` the primary key (changed from nvarchar(max) to nvarchar(450))
+- Resulted in the current simplified schema
+
+## Data Access Examples
+
+### Controller Usage
+
+The `LockersController` demonstrates how to use the DbContext:
+
+```csharp LockersController.cs
+public class LockersController : Controller
+{
+    private readonly LockersDbContext lockersDbContext;
+    
+    public LockersController(LockersDbContext lockersDbContext)
+    {
+        this.lockersDbContext = lockersDbContext;
+    }
+
+    // Get All Lockers
+    [HttpGet]
+    public async Task<IActionResult> GetAllLockers()
+    {
+        var result = await lockersDbContext.Lockers.ToListAsync();
+        return Ok(result.OrderBy(x => x.LockerNo));
+    }
+
+    // Get Locker by LockerNo
+    [HttpGet]
+    [Route("{lockerNo}")]
+    public async Task<IActionResult> GetLocker([FromRoute] string lockerNo)
+    {
+        var result = await lockersDbContext.Lockers
+            .FirstOrDefaultAsync(x => x.LockerNo == lockerNo);
+        
+        if (result != null)
+            return Ok(result);
+        
+        return NotFound("Locker not found");
+    }
+
+    // Add Locker
+    [HttpPost]
+    public async Task<IActionResult> AddLocker([FromBody] LockerInfo locker)
+    {
+        // Set IsEmpty based on EmployeeNumber
+        locker.IsEmpty = locker.EmployeeNumber != string.Empty ? false : true;
+        
+        await lockersDbContext.Lockers.AddAsync(locker);
+        await lockersDbContext.SaveChangesAsync();
+        
+        return CreatedAtAction(nameof(GetLocker), new { locker.IsEmpty }, locker);
+    }
+}
+```
+
+## Working with Migrations
+
+### Creating a New Migration
+
+When you modify the entity models, create a migration to update the database:
+
+```bash
+dotnet ef migrations add MigrationName
+```
+
+### Applying Migrations
+
+Apply pending migrations to the database:
+
+```bash
+dotnet ef database update
+```
+
+### Rolling Back Migrations
+
+Revert to a specific migration:
+
+```bash
+dotnet ef database update PreviousMigrationName
+```
+
+### Removing the Last Migration
+
+If you haven't applied a migration yet, you can remove it:
+
+```bash
+dotnet ef migrations remove
+```
+
+<Warning>
+Only remove migrations that haven't been applied to any database. Removing applied migrations can cause data loss.
+</Warning>
+
+### Listing Migrations
+
+View all migrations:
+
+```bash
+dotnet ef migrations list
+```
+
+## Database Management
+
+### Viewing Data
+
+You can view the database using:
+- **SQL Server Management Studio (SSMS)**
+- **Visual Studio SQL Server Object Explorer**
+- **Azure Data Studio**
+
+Connect using:
+- **Server**: `(LocalDB)\MSSQLLocalDB`
+- **Database**: `LockerDb`
+- **Authentication**: Windows Authentication
+
+### Seeding Data
+
+To add test data, you can:
+
+1. Use Swagger UI to POST data via the API
+2. Execute SQL scripts directly
+3. Add seed data in `DbContext.OnModelCreating()`
+
+### Resetting the Database
+
+To start fresh:
+
+```bash
+# Drop the database
+dotnet ef database drop
+
+# Recreate with all migrations
+dotnet ef database update
+```
+
+## Best Practices
+
+<CardGroup cols={2}>
+  <Card title="Always Use Migrations" icon="code-branch">
+    Never modify the database schema directly. Always create migrations for schema changes.
+  </Card>
+  <Card title="Name Migrations Clearly" icon="tag">
+    Use descriptive migration names like `AddEmployeePhoneNumber` instead of generic names.
+  </Card>
+  <Card title="Test Migrations" icon="flask">
+    Test migrations on a development database before applying to production.
+  </Card>
+  <Card title="Async Operations" icon="bolt">
+    Use async methods (`ToListAsync()`, `SaveChangesAsync()`) for better performance.
+  </Card>
+</CardGroup>
+
+## Troubleshooting
+
+<AccordionGroup>
+  <Accordion title="Migration Fails to Apply">
+    **Problem**: `dotnet ef database update` fails with error
+    
+    **Solution**:
+    - Check that SQL Server LocalDB is running
+    - Verify connection string in `appsettings.json`
+    - Check migration files for syntax errors
+    - Try dropping and recreating the database
+  </Accordion>
+
+  <Accordion title="Primary Key Violation">
+    **Problem**: Cannot insert duplicate `LockerNo`
+    
+    **Solution**:
+    - Ensure each locker has a unique `LockerNo`
+    - Check for existing lockers before insertion (see `LockersController.AddLocker`)
+  </Accordion>
+
+  <Accordion title="Connection String Not Found">
+    **Problem**: Application cannot find connection string
+    
+    **Solution**:
+    - Verify `appsettings.json` contains `LockersDbConnectionString`
+    - Check that the configuration is loaded in `Program.cs`
+    - Ensure the connection string name matches exactly (case-sensitive)
+  </Accordion>
+</AccordionGroup>

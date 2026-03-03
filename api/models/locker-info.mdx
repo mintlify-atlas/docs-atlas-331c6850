@@ -1,0 +1,101 @@
+---
+title: 'LockerInfo'
+description: 'Model representing a locker in the system with its assignment and physical properties'
+---
+
+## Overview
+
+The `LockerInfo` model represents a locker entity in the Locker Management System. It contains information about the locker's physical characteristics, location, assignment status, and which employee (if any) is currently assigned to it.
+
+## Properties
+
+<ResponseField name="LockerNo" type="string" required>
+  The unique identifier for the locker. This is the primary key and must be unique across all lockers in the system.
+  
+  **Validation:**
+  - Required field
+  - Must be unique (enforced at database level)
+</ResponseField>
+
+<ResponseField name="EmployeeNumber" type="string">
+  The employee number of the person assigned to this locker. This field is nullable and can be empty when the locker is unassigned.
+  
+  **Validation:**
+  - Must be unique across all lockers (one employee can only have one locker)
+  - Can be null or empty string for unassigned lockers
+  - Setting this field automatically updates `IsEmpty` to `false`
+</ResponseField>
+
+<ResponseField name="Size" type="integer" required>
+  The size of the locker, represented as an integer value. This typically indicates the physical dimensions or capacity category of the locker.
+  
+  **Validation:**
+  - Required field
+  - Must be a valid integer value
+</ResponseField>
+
+<ResponseField name="Location" type="string" required>
+  The physical location or area where the locker is situated within the facility.
+  
+  **Validation:**
+  - Required field
+</ResponseField>
+
+<ResponseField name="IsEmpty" type="boolean" required>
+  Indicates whether the locker is currently unassigned and available for use.
+  
+  **Behavior:**
+  - Automatically set to `false` when `EmployeeNumber` is provided and not empty
+  - Automatically set to `true` when `EmployeeNumber` is empty or null
+  - This field is computed based on the `EmployeeNumber` value during create and update operations
+</ResponseField>
+
+## Example JSON
+
+### Assigned Locker
+
+```json
+{
+  "lockerNo": "L-001",
+  "employeeNumber": "EMP12345",
+  "size": 2,
+  "location": "Building A - Floor 1",
+  "isEmpty": false
+}
+```
+
+### Empty Locker
+
+```json
+{
+  "lockerNo": "L-002",
+  "employeeNumber": null,
+  "size": 1,
+  "location": "Building B - Floor 2",
+  "isEmpty": true
+}
+```
+
+## Validation Rules
+
+The following validation rules are enforced when creating or updating lockers:
+
+1. **Unique Locker Number**: The `LockerNo` must be unique across all lockers. Attempting to create a locker with an existing locker number will result in a 400 Bad Request error.
+
+2. **Unique Employee Assignment**: An employee can only be assigned to one locker at a time. If an `EmployeeNumber` is already associated with another locker, the operation will fail with a 400 Bad Request error.
+
+3. **Automatic IsEmpty Calculation**: The `IsEmpty` field is automatically calculated based on the `EmployeeNumber`:
+   - If `EmployeeNumber` is not empty: `IsEmpty = false`
+   - If `EmployeeNumber` is empty or null: `IsEmpty = true`
+
+4. **Required Fields**: The following fields are required:
+   - `LockerNo`
+   - `Size`
+   - `Location`
+   - `IsEmpty` (automatically computed)
+
+## Usage Notes
+
+- When creating a new locker, you don't need to manually set the `IsEmpty` field as it will be automatically determined based on whether an `EmployeeNumber` is provided.
+- The `EmployeeNumber` field can be set to an empty string or null to indicate an unassigned locker.
+- All lockers are uniquely identified by their `LockerNo`, which serves as the primary key.

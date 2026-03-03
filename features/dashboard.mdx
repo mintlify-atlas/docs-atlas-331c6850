@@ -1,0 +1,204 @@
+---
+title: Dashboard
+description: Overview of the Locker Management dashboard and real-time locker status display
+---
+
+The dashboard provides a visual, card-based interface for monitoring locker availability and status in real-time. It displays all lockers with color-coded indicators for quick identification of available and occupied lockers.
+
+## Card-Based Locker View
+
+The dashboard uses a grid layout to display individual locker cards. Each card shows essential locker information at a glance.
+
+### Locker Card Components
+
+Each locker card displays:
+- **Locker Number**: The unique identifier for the locker
+- **Location**: Physical location of the locker
+- **Employee ID**: The employee number assigned to the locker (if occupied)
+- **Delete Action**: Quick access to remove the locker
+
+<CodeGroup>
+```html app.component.html:31-42
+<div class="lockers-grid">
+  <div class="locker-row" *ngFor="let locker of lockers">
+    <div class="locker-row-details" [ngStyle]="{ 'background-color': locker.isEmpty ? '#92f08d' : '#8db0f0' }">
+      <h3 (click)="populateForm(locker)">No. {{ locker.lockerNo }}</h3>
+      <span>{{ locker.location }}</span>
+      <span>Emp ID: {{ locker.employeeNumber }}</span>
+      <div class="locker-row-action">
+        <a (click)="deleteLocker(locker.lockerNo)"><i class="fa-solid fa-trash-can"></i></a>
+      </div>
+    </div>        
+  </div>
+</div>
+```
+
+```typescript app.component.ts:12-19
+lockers: Locker[] = [];
+locker: Locker = {
+  employeeNumber: '',
+  lockerNo: '',
+  size: 0,
+  location: '',
+  isEmpty: true
+};
+```
+</CodeGroup>
+
+## Color-Coded Availability Indicators
+
+The dashboard uses color coding based on the `IsEmpty` field to indicate locker availability status:
+
+<CardGroup cols={2}>
+  <Card title="Empty Locker" icon="square" color="#92f08d">
+    Green background indicates the locker is available
+  </Card>
+  <Card title="Occupied Locker" icon="square" color="#8db0f0">
+    Blue background indicates the locker is currently assigned to an employee
+  </Card>
+</CardGroup>
+
+### Status Indicator Logic
+
+The color is dynamically applied using Angular's `ngStyle` directive:
+
+```html app.component.html:33
+[ngStyle]="{ 'background-color': locker.isEmpty ? '#92f08d' : '#8db0f0' }"
+```
+
+<Info>
+The legend is displayed below the form:
+- **Green `[  ]`** = Empty locker
+- **Blue `[  ]`** = Occupied locker
+</Info>
+
+## Real-Time Status Updates
+
+The dashboard automatically refreshes locker data after any CRUD operation to maintain real-time accuracy.
+
+### Update Triggers
+
+The `getAllLockers()` method is called after:
+
+1. **Initial Load**: When the component initializes
+2. **Adding a Locker**: After successfully creating a new locker
+3. **Deleting a Locker**: After removing a locker
+4. **Updating a Locker**: After modifying locker information
+
+<CodeGroup>
+```typescript app.component.ts:25-36
+ngOnInit(): void {
+  this.getAllLockers();
+}
+
+getAllLockers() {
+  this.lockersService.getAllLockers()
+  .subscribe(
+    response => {
+      this.lockers = response;
+    }
+  );
+}
+```
+
+```typescript app.component.ts:38-51
+onSubmit() {
+  this.lockersService.addLocker(this.locker)
+    .subscribe(
+      response => {
+        this.getAllLockers();
+        this.locker = {
+          employeeNumber: '',
+          lockerNo: '',
+          size: 0,
+          location: '',
+          isEmpty: true
+        }
+      } 
+    )
+}
+```
+</CodeGroup>
+
+## Locker Display and Sorting
+
+Lockers are retrieved from the API and displayed in a specific order to ensure consistent visualization.
+
+### Sorting Order
+
+The backend API sorts lockers by `LockerNo` in ascending order:
+
+```csharp LockersController.cs:18-25
+[HttpGet]
+public async Task<IActionResult> GetAllLockers()
+{
+    var result = await lockersDbContext.Lockers.ToListAsync();
+
+    return Ok(result.OrderBy(x => x.LockerNo));
+}
+```
+
+### Data Model
+
+The locker data structure includes all necessary fields for display:
+
+<CodeGroup>
+```typescript locker.model.ts:1-7
+export interface Locker {
+    lockerNo: string;
+    employeeNumber: string | null;    
+    size: number;
+    location: string;
+    isEmpty: boolean;
+}
+```
+
+```csharp LockerInfo.cs:5-13
+public class LockerInfo
+{
+    [Key]
+    public string LockerNo { get; set; }
+    public string? EmployeeNumber { get; set; }        
+    public int Size { get; set; }
+    public string Location { get; set; }
+    public bool IsEmpty { get; set; }
+}
+```
+</CodeGroup>
+
+## Interactive Features
+
+### Click-to-Edit
+
+Clicking on a locker number populates the form with the locker's current data for editing:
+
+```typescript app.component.ts:73-75
+populateForm(locker: Locker) {
+  this.locker = locker;
+}
+```
+
+The locker number is made clickable in the template:
+
+```html app.component.html:34
+<h3 (click)="populateForm(locker)">No. {{ locker.lockerNo }}</h3>
+```
+
+### Quick Delete
+
+Each locker card includes a delete action that removes the locker and refreshes the view:
+
+```typescript app.component.ts:64-71
+deleteLocker(lockerNo: string) {
+  this.lockersService.deleteLocker(lockerNo)
+  .subscribe(
+    response => {
+      this.getAllLockers();
+    }
+  );
+}
+```
+
+<Warning>
+Deleting a locker is immediate and cannot be undone. Consider adding a confirmation dialog in production environments.
+</Warning>

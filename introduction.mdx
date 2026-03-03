@@ -1,0 +1,133 @@
+---
+title: Introduction
+description: A modern locker management system built with .NET Core 6.0 and Angular 14
+---
+
+<img
+  className="block dark:hidden"
+  src="/images/hero-light.png"
+  alt="Locker Management Hero"
+/>
+<img
+  className="hidden dark:block"
+  src="/images/hero-dark.png"
+  alt="Locker Management Hero"
+/>
+
+## Welcome to Locker Management
+
+Locker Management is a full-stack SaaS application designed to efficiently track and manage locker assignments to employees. Built with a modern tech stack featuring .NET Core 6.0 for the backend API and Angular 14 for the frontend, this system provides an intuitive interface for managing lockers across multiple locations.
+
+## What is Locker Management?
+
+The Locker Management system enables organizations to:
+
+- **Track locker assignments** to employees with unique employee numbers
+- **Manage locker inventory** across multiple buildings and locations
+- **Monitor availability** with real-time visual indicators
+- **Prevent conflicts** by enforcing one locker per employee
+
+The system uses a card-based dashboard interface with color-coded lockers that instantly show availability status, making it easy to identify which lockers are occupied and which are available.
+
+## Key Features
+
+<CardGroup cols={2}>
+  <Card title="CRUD Operations" icon="database">
+    Complete Create, Read, Update, and Delete functionality for managing locker records through a RESTful API
+  </Card>
+  
+  <Card title="Visual Dashboard" icon="grid">
+    Interactive card-based dashboard with color-coded availability indicators - green for empty lockers, blue for occupied ones
+  </Card>
+  
+  <Card title="Employee Tracking" icon="users">
+    Track which employee is assigned to each locker with unique employee numbers and prevent duplicate assignments
+  </Card>
+  
+  <Card title="Multi-Location Support" icon="building">
+    Manage lockers across different buildings and locations within your organization
+  </Card>
+  
+  <Card title="Real-Time Status" icon="refresh">
+    Automatic status updates as lockers are assigned or freed, with live previews of changes
+  </Card>
+  
+  <Card title="API Documentation" icon="book">
+    Built-in Swagger/OpenAPI documentation for easy API exploration and integration
+  </Card>
+</CardGroup>
+
+## Architecture
+
+The Locker Management system follows a clean architecture pattern:
+
+- **Backend**: .NET Core 6.0 Web API with Entity Framework Core 6.0.8
+- **Database**: SQL Server with LocalDB support
+- **Frontend**: Angular 14 with TypeScript 4.7
+- **API Documentation**: Swagger/Swashbuckle 6.2.3
+- **Communication**: RESTful API with CORS enabled for cross-origin requests
+
+## Data Model
+
+The system uses a simple but effective data model based on the `LockerInfo` entity:
+
+```csharp
+public class LockerInfo
+{
+    [Key]
+    public string LockerNo { get; set; }
+    public string? EmployeeNumber { get; set; }        
+    public int Size { get; set; }
+    public string Location { get; set; }
+    public bool IsEmpty { get; set; }
+}
+```
+
+Each locker has:
+- **Locker No**: Unique identifier that accepts any numbering format
+- **Employee Number**: Unique employee identifier (optional, one per employee)
+- **Size**: Numeric size indicator (0, 1, 2, etc.)
+- **Location**: Building or area where the locker is located
+- **Is Empty**: Automatic status flag based on employee assignment
+
+## Get Started
+
+<CardGroup cols={3}>
+  <Card
+    title="Quick Start"
+    icon="rocket"
+    href="/quickstart"
+  >
+    Get up and running in minutes with our step-by-step guide
+  </Card>
+  
+  <Card
+    title="API Reference"
+    icon="code"
+    href="/api/introduction"
+  >
+    Explore the complete API documentation
+  </Card>
+  
+  <Card
+    title="Features"
+    icon="star"
+    href="/features/dashboard"
+  >
+    Learn about all available features and capabilities
+  </Card>
+</CardGroup>
+
+## Use Cases
+
+Locker Management is ideal for:
+
+- **Corporate offices** managing employee lockers
+- **Educational institutions** tracking student locker assignments
+- **Gyms and fitness centers** managing member lockers
+- **Warehouses** organizing employee storage spaces
+- **Any facility** requiring locker allocation and tracking
+
+<Note>
+  This is a practice project demonstrating modern full-stack development with .NET Core and Angular. It showcases RESTful API design, Entity Framework integration, and reactive frontend development.
+</Note>

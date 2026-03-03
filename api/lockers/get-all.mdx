@@ -1,0 +1,76 @@
+---
+title: "Get All Lockers"
+api: "GET /api/lockers"
+description: "Retrieve all lockers in the system, ordered by locker number"
+---
+
+## HTTP Method and Path
+
+```
+GET /api/lockers
+```
+
+## Response
+
+Returns an array of locker objects ordered by locker number.
+
+<ResponseField name="data" type="array">
+  Array of locker objects
+  
+  <Expandable title="Locker Object">
+    <ResponseField name="lockerNo" type="string" required>
+      The unique locker number identifier
+    </ResponseField>
+    
+    <ResponseField name="employeeNumber" type="string">
+      The employee number assigned to this locker (null if empty)
+    </ResponseField>
+    
+    <ResponseField name="size" type="integer" required>
+      The size of the locker
+    </ResponseField>
+    
+    <ResponseField name="location" type="string" required>
+      The physical location of the locker
+    </ResponseField>
+    
+    <ResponseField name="isEmpty" type="boolean" required>
+      Indicates whether the locker is currently empty
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+## Example Request
+
+```bash cURL
+curl -X GET https://api.example.com/api/lockers \
+  -H "Content-Type: application/json"
+```
+
+## Example Response
+
+```json
+[
+  {
+    "lockerNo": "A001",
+    "employeeNumber": "EMP12345",
+    "size": 2,
+    "location": "Building A - Floor 1",
+    "isEmpty": false
+  },
+  {
+    "lockerNo": "A002",
+    "employeeNumber": "",
+    "size": 1,
+    "location": "Building A - Floor 1",
+    "isEmpty": true
+  },
+  {
+    "lockerNo": "B001",
+    "employeeNumber": "EMP67890",
+    "size": 3,
+    "location": "Building B - Floor 2",
+    "isEmpty": false
+  }
+]
+```

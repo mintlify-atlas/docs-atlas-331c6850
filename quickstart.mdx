@@ -1,80 +1,371 @@
 ---
-title: "Quickstart"
-description: "Start building awesome documentation in minutes"
+title: Quick Start
+description: Get the Locker Management system running locally in minutes
 ---
 
-## Get started in three steps
+## Prerequisites
 
-Get your documentation site running locally and make your first customization.
-
-### Step 1: Set up your local environment
-
-<AccordionGroup>
-  <Accordion icon="copy" title="Clone your docs locally">
-    During the onboarding process, you created a GitHub repository with your docs content if you didn't already have one. You can find a link to this repository in your [dashboard](https://dashboard.mintlify.com).
-    
-    To clone the repository locally so that you can make and preview changes to your docs, follow the [Cloning a repository](https://docs.github.com/en/repositories/creating-and-managing-repositories/cloning-a-repository) guide in the GitHub docs.
-  </Accordion>
-  <Accordion icon="rectangle-terminal" title="Start the preview server">
-    1. Install the Mintlify CLI: `npm i -g mint`
-    2. Navigate to your docs directory and run: `mint dev`
-    3. Open `http://localhost:3000` to see your docs live!
-    
-    <Tip>Your preview updates automatically as you edit files.</Tip>
-  </Accordion>
-</AccordionGroup>
-
-### Step 2: Deploy your changes
-
-<AccordionGroup>
-  <Accordion icon="github" title="Install our GitHub app">
-    Install the Mintlify GitHub app from your [dashboard](https://dashboard.mintlify.com/settings/organization/github-app).
-    
-    Our GitHub app automatically deploys your changes to your docs site, so you don't need to manage deployments yourself.
-</Accordion>
-<Accordion icon="palette" title="Update your site name and colors">
-    For a first change, let's update the name and colors of your docs site.
-
-    1. Open `docs.json` in your editor.
-    2. Change the `"name"` field to your project name.
-    3. Update the `"colors"` to match your brand.
-    4. Save and see your changes instantly at `http://localhost:3000`.
-
-    <Tip>Try changing the primary color to see an immediate difference!</Tip>
-  </Accordion>
-</AccordionGroup>
-
-### Step 3: Go live
-
-<Accordion icon="rocket" title="Publish your docs">
-  1. Commit and push your changes.
-  2. Your docs will update and be live in moments!
-</Accordion>
-
-## Next steps
-
-Now that you have your docs running, explore these key features:
+Before you begin, ensure you have the following installed on your system:
 
 <CardGroup cols={2}>
-
-<Card title="Write Content" icon="pen-to-square" href="/essentials/markdown">
-  Learn MDX syntax and start writing your documentation.
-</Card>
-
-<Card title="Customize style" icon="palette" href="/essentials/settings">
-  Make your docs match your brand perfectly.
-</Card>
-
-<Card title="Add code examples" icon="square-code" href="/essentials/code">
-  Include syntax-highlighted code blocks.
-</Card>
-
-<Card title="API documentation" icon="code" href="/api-reference/introduction">
-  Auto-generate API docs from OpenAPI specs.
-</Card>
-
+  <Card title="Node.js & npm" icon="node-js">
+    Version 14.x or higher for running the Angular frontend
+  </Card>
+  
+  <Card title="Angular CLI" icon="angular">
+    Version 14.2.1 for Angular development commands
+  </Card>
+  
+  <Card title=".NET 6.0 SDK" icon="microsoft">
+    Required for building and running the .NET Core API
+  </Card>
+  
+  <Card title="SQL Server" icon="database">
+    LocalDB or SQL Server instance for data storage
+  </Card>
 </CardGroup>
 
 <Note>
-  **Need help?** See our [full documentation](https://mintlify.com/docs) or join our [community](https://mintlify.com/community).
+  The project uses SQL Server LocalDB by default. If you're using a different SQL Server instance, you'll need to update the connection string in `appsettings.json`.
+</Note>
+
+## Installation
+
+<Steps>
+  <Step title="Clone the Repository">
+    Clone the Locker Management project to your local machine:
+    
+    ```bash
+    git clone https://github.com/oneagustiranda/LockerManagement.git
+    cd LockerManagement
+    ```
+  </Step>
+
+  <Step title="Set Up the Database">
+    The project uses Entity Framework Core migrations. Navigate to the API directory and apply the migrations:
+    
+    ```bash
+    cd API/Locker/Locker.API
+    dotnet ef database update
+    ```
+    
+    This will create the `LockerDb` database with the necessary tables.
+    
+    <Warning>
+      Make sure SQL Server LocalDB is running. If you encounter connection issues, verify the connection string in `appsettings.json`.
+    </Warning>
+  </Step>
+
+  <Step title="Configure the Backend">
+    Review and update the connection string if needed in `appsettings.json`:
+    
+    ```json
+    {
+      "ConnectionStrings": {
+        "LockersDbConnectionString": "server=(LocalDB)\\MSSQLLocalDB;database=LockerDb;Trusted_Connection=true"
+      }
+    }
+    ```
+    
+    <Note>
+      For SQL Server instances other than LocalDB, update the server address accordingly. For example: `"server=localhost;database=LockerDb;Trusted_Connection=true"`
+    </Note>
+  </Step>
+
+  <Step title="Run the Backend API">
+    From the API directory, start the .NET Core API:
+    
+    ```bash
+    cd API/Locker
+    dotnet run --project Locker.API
+    ```
+    
+    The API will start on `https://localhost:7281` by default.
+    
+    <Card title="Verify API is Running" icon="check">
+      Navigate to `https://localhost:7281/swagger` to access the Swagger UI and verify all endpoints are available.
+    </Card>
+  </Step>
+
+  <Step title="Install Frontend Dependencies">
+    Open a new terminal window and navigate to the Angular frontend directory:
+    
+    ```bash
+    cd UI/locker
+    npm install
+    ```
+    
+    This will install all required Angular 14 dependencies including:
+    - Angular core packages (v14.0.0)
+    - RxJS for reactive programming
+    - Angular CLI build tools
+  </Step>
+
+  <Step title="Configure the Frontend">
+    The Angular service is pre-configured to connect to the API at `https://localhost:7281`. 
+    
+    If you're running the API on a different port, update the `baseUrl` in `src/app/service/lockers.service.ts`:
+    
+    ```typescript
+    baseUrl = 'https://localhost:7281/api/lockers';
+    ```
+  </Step>
+
+  <Step title="Run the Frontend">
+    Start the Angular development server:
+    
+    ```bash
+    ng serve
+    ```
+    
+    The application will be available at `http://localhost:4200/`. The app will automatically reload when you make changes to source files.
+  </Step>
+</Steps>
+
+## Your First Locker
+
+Now that both the backend and frontend are running, let's create your first locker:
+
+<Steps>
+  <Step title="Access the Dashboard">
+    Open your browser and navigate to `http://localhost:4200/`. You'll see the Locker Management dashboard with a form on the left and the locker grid on the right.
+  </Step>
+
+  <Step title="Create a New Locker">
+    Fill in the form with the following information:
+    
+    - **Locker No**: A unique identifier (e.g., "A-101")
+    - **Size**: A numeric value (e.g., 2 for medium)
+    - **Location**: Building or area (e.g., "Building A - Floor 1")
+    - **Employee No**: Leave empty for an available locker, or enter an employee ID (e.g., "EMP001")
+    
+    Click **Save** to create the locker.
+    
+    <Note>
+      Empty lockers will appear with a green background, while occupied lockers (with an employee number) will have a blue background.
+    </Note>
+  </Step>
+
+  <Step title="View the Locker Card">
+    Your new locker will appear in the grid as a card showing:
+    - Locker number
+    - Location
+    - Employee ID (if assigned)
+    - Color-coded status (green = empty, blue = occupied)
+  </Step>
+
+  <Step title="Update a Locker">
+    Click on the locker number in the grid to populate the form with its data. Modify any field and click **Save** to update.
+    
+    <Warning>
+      There is a known limitation with the update functionality. Updates work, but the routing needs improvement for a smoother experience.
+    </Warning>
+  </Step>
+
+  <Step title="Delete a Locker">
+    Click the trash icon on any locker card to remove it from the system.
+  </Step>
+</Steps>
+
+## API Endpoints
+
+The system exposes the following RESTful endpoints:
+
+<CodeGroup>
+```bash GET All Lockers
+curl https://localhost:7281/api/lockers
+```
+
+```bash GET Single Locker
+curl https://localhost:7281/api/lockers/A-101
+```
+
+```bash POST Create Locker
+curl -X POST https://localhost:7281/api/lockers \
+  -H "Content-Type: application/json" \
+  -d '{
+    "lockerNo": "A-101",
+    "employeeNumber": "EMP001",
+    "size": 2,
+    "location": "Building A - Floor 1",
+    "isEmpty": false
+  }'
+```
+
+```bash PUT Update Locker
+curl -X PUT https://localhost:7281/api/lockers/A-101 \
+  -H "Content-Type: application/json" \
+  -d '{
+    "lockerNo": "A-101",
+    "employeeNumber": "EMP002",
+    "size": 2,
+    "location": "Building A - Floor 1",
+    "isEmpty": false
+  }'
+```
+
+```bash DELETE Remove Locker
+curl -X DELETE https://localhost:7281/api/lockers/A-101
+```
+</CodeGroup>
+
+## Business Rules
+
+The API enforces the following business rules:
+
+<Card title="Unique Constraints" icon="shield-check">
+  - Each locker number must be unique
+  - Each employee can only be assigned to one locker
+  - Empty employee numbers are allowed (represents available lockers)
+</Card>
+
+When attempting to create a locker, the API will validate:
+
+```csharp
+// Employee number uniqueness
+var empNumberExist = await lockersDbContext.Lockers
+    .Where(x => x.EmployeeNumber == locker.EmployeeNumber 
+           && !x.EmployeeNumber.Equals(string.Empty))
+    .Select(x => x.EmployeeNumber).ToListAsync();
+
+// Locker number uniqueness
+var lockerNumberExist = await lockersDbContext.Lockers
+    .Where(x => x.LockerNo == locker.LockerNo)
+    .Select(x => x.EmployeeNumber).ToListAsync();
+```
+
+## Data Model
+
+The TypeScript model on the frontend matches the C# model on the backend:
+
+<CodeGroup>
+```csharp Backend Model
+public class LockerInfo
+{
+    [Key]
+    public string LockerNo { get; set; }
+    public string? EmployeeNumber { get; set; }        
+    public int Size { get; set; }
+    public string Location { get; set; }
+    public bool IsEmpty { get; set; }
+}
+```
+
+```typescript Frontend Model
+export interface Locker {
+    lockerNo: string;
+    employeeNumber: string | null;    
+    size: number;
+    location: string;
+    isEmpty: boolean;
+}
+```
+</CodeGroup>
+
+## Troubleshooting
+
+<AccordionGroup>
+  <Accordion title="Database connection errors">
+    If you see connection errors, verify that:
+    - SQL Server LocalDB is installed and running
+    - The connection string in `appsettings.json` is correct
+    - You've run `dotnet ef database update` to create the database
+  </Accordion>
+
+  <Accordion title="CORS errors in the browser">
+    The API is configured with CORS to allow all origins in development:
+    
+    ```csharp
+    builder.Services.AddCors((setup) =>
+    {
+        setup.AddPolicy("default", (options) =>
+        {
+            options.AllowAnyMethod().AllowAnyHeader().AllowAnyOrigin();
+        });
+    });
+    ```
+    
+    Make sure the API is running when you start the Angular app.
+  </Accordion>
+
+  <Accordion title="API not available at localhost:7281">
+    The port is configured in `launchSettings.json`. If you need to change it, update both the API configuration and the `baseUrl` in the Angular service.
+  </Accordion>
+
+  <Accordion title="Angular build errors">
+    Ensure you have the correct versions:
+    - Node.js 14.x or higher
+    - Angular CLI 14.2.1
+    
+    Try clearing the cache:
+    ```bash
+    npm cache clean --force
+    rm -rf node_modules package-lock.json
+    npm install
+    ```
+  </Accordion>
+</AccordionGroup>
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card
+    title="Explore the API"
+    icon="flask"
+    href="/api/introduction"
+  >
+    Dive deep into the API endpoints and integration options
+  </Card>
+  
+  <Card
+    title="Features Overview"
+    icon="stars"
+    href="/features/dashboard"
+  >
+    Learn about dashboard features and locker management
+  </Card>
+  
+  <Card
+    title="Database Schema"
+    icon="database"
+    href="/development/database"
+  >
+    Understand the data structure and migrations
+  </Card>
+  
+  <Card
+    title="Architecture"
+    icon="sitemap"
+    href="/development/architecture"
+  >
+    Learn about the system architecture
+  </Card>
+  
+  <Card
+    title="Learn the Features"
+    icon="book"
+    href="/essentials/features"
+  >
+    Discover all the features and capabilities
+  </Card>
+  
+  <Card
+    title="Database Schema"
+    icon="database"
+    href="/essentials/database"
+  >
+    Understand the data structure and migrations
+  </Card>
+  
+  <Card
+    title="Deployment Guide"
+    icon="rocket"
+    href="/deployment/production"
+  >
+    Deploy to production environments
+  </Card>
+</CardGroup>
+
+<Note>
+  This quick start guide gets you running locally. For production deployments, you'll need to configure proper authentication, update CORS policies, and use a production-grade SQL Server instance.
 </Note>

@@ -1,0 +1,309 @@
+---
+title: Employee Tracking
+description: Understanding employee assignments, locker occupancy tracking, and validation rules
+---
+
+The Locker Management system includes built-in employee tracking to ensure each employee is assigned to only one locker and to maintain accurate occupancy status across the system.
+
+## Employee Assignments
+
+Employee assignments are managed through the `EmployeeNumber` field in the locker model. This field links a locker to a specific employee.
+
+### Data Model
+
+The employee number is stored as an optional field in both the frontend and backend:
+
+<CodeGroup>
+```typescript locker.model.ts:1-7
+export interface Locker {
+    lockerNo: string;
+    employeeNumber: string | null;    
+    size: number;
+    location: string;
+    isEmpty: boolean;
+}
+```
+
+```csharp LockerInfo.cs:5-13
+public class LockerInfo
+{
+    [Key]
+    public string LockerNo { get; set; }
+    public string? EmployeeNumber { get; set; }        
+    public int Size { get; set; }
+    public string Location { get; set; }
+    public bool IsEmpty { get; set; }
+}
+```
+</CodeGroup>
+
+<Note>
+The `EmployeeNumber` field is nullable, allowing lockers to exist without an assigned employee.
+</Note>
+
+### Assigning Employees
+
+Employees are assigned to lockers through the management form:
+
+```html app.component.html:21-24
+<div class="form-group">
+  <label for="">Employee No</label>
+  <input type="text" name="empNo" [(ngModel)]="locker.employeeNumber">
+</div>
+```
+
+When a locker is created or updated with an employee number, the assignment is processed and validated by the backend.
+
+## One Locker Per Employee Rule
+
+The system enforces a strict rule: each employee can only be assigned to one locker at a time. This prevents double-booking and ensures accurate tracking.
+
+### Validation Logic
+
+During locker creation, the system checks if the employee number already exists:
+
+```csharp LockersController.cs:45-47
+var empNumberExist = await lockersDbContext.Lockers
+                    .Where(x => x.EmployeeNumber == locker.EmployeeNumber && !x.EmployeeNumber.Equals(string.Empty))
+                    .Select(x => x.EmployeeNumber).ToListAsync();
+```
+
+<Info>
+The validation excludes empty employee numbers, so multiple unassigned lockers are allowed.
+</Info>
+
+### Rejection of Duplicate Assignments
+
+If an employee is already assigned to another locker, the creation fails:
+
+```csharp LockersController.cs:53-58
+if (empNumberExist.Any())
+{
+    var message = new Exception($"Employee number {locker.EmployeeNumber} already exists");
+
+    return BadRequest(message);
+}
+```
+
+<Warning>
+Attempting to assign an employee who already has a locker will result in a `400 Bad Request` response with an error message.
+</Warning>
+
+### Complete Validation Flow
+
+The complete validation process checks both locker numbers and employee numbers:
+
+```csharp LockersController.cs:42-76
+[HttpPost]
+public async Task<IActionResult> AddLocker([FromBody] LockerInfo locker)
+{
+    var empNumberExist = await lockersDbContext.Lockers
+                        .Where(x => x.EmployeeNumber == locker.EmployeeNumber && !x.EmployeeNumber.Equals(string.Empty))
+                        .Select(x => x.EmployeeNumber).ToListAsync();
+
+    var lockerNumberExist = await lockersDbContext.Lockers
+                        .Where(x => x.LockerNo == locker.LockerNo)
+                        .Select(x => x.EmployeeNumber).ToListAsync();
+
+    if (empNumberExist.Any())
+    {
+        var message = new Exception($"Employee number {locker.EmployeeNumber} already exists");
+
+        return BadRequest(message);
+    }
+    else if (lockerNumberExist.Any())
+    {
+        var message = new Exception($"Locker number {locker.LockerNo} already exists");
+
+        return BadRequest(message);
+    }
+    else
+    {
+        // if the input of employee number is not null, then the value isEmpty is false
+        locker.IsEmpty = locker.EmployeeNumber != string.Empty ? false : true;
+
+        await lockersDbContext.Lockers.AddAsync(locker);
+        await lockersDbContext.SaveChangesAsync();
+
+        return CreatedAtAction(nameof(GetLocker), new { locker.IsEmpty }, locker);
+    }
+    
+}
+```
+
+## Tracking Locker Occupancy Status
+
+The system automatically tracks whether a locker is empty or occupied based on employee assignments using the `IsEmpty` field.
+
+### Automatic Status Calculation
+
+The `IsEmpty` status is calculated automatically and never set manually:
+
+**During Locker Creation:**
+
+```csharp LockersController.cs:68
+locker.IsEmpty = locker.EmployeeNumber != string.Empty ? false : true;
+```
+
+**During Locker Updates:**
+
+```csharp LockersController.cs:92
+existingLocker.IsEmpty = locker.EmployeeNumber != string.Empty ? false : true;
+```
+
+### Status Logic
+
+The calculation follows this simple rule:
+
+<Steps>
+  <Step title="Check Employee Number">
+    Evaluate whether the `EmployeeNumber` field contains a value
+  </Step>
+  <Step title="Set IsEmpty to false">
+    If an employee number exists and is not empty, set `IsEmpty = false` (locker is occupied)
+  </Step>
+  <Step title="Set IsEmpty to true">
+    If the employee number is empty or null, set `IsEmpty = true` (locker is available)
+  </Step>
+</Steps>
+
+### Visual Representation
+
+The occupancy status is visually represented in the dashboard with color coding:
+
+```html app.component.html:33
+[ngStyle]="{ 'background-color': locker.isEmpty ? '#92f08d' : '#8db0f0' }"
+```
+
+- **Green (#92f08d)**: Empty locker (`isEmpty = true`)
+- **Blue (#8db0f0)**: Occupied locker (`isEmpty = false`)
+
+### Display in Dashboard
+
+The employee number is displayed on occupied locker cards:
+
+```html app.component.html:36
+<span>Emp ID: {{ locker.employeeNumber }}</span>
+```
+
+## Employee Number Validation
+
+The system validates employee numbers to ensure data integrity and enforce business rules.
+
+### Uniqueness Validation
+
+The primary validation ensures each employee number is unique across all occupied lockers:
+
+```csharp LockersController.cs:45-47
+var empNumberExist = await lockersDbContext.Lockers
+                    .Where(x => x.EmployeeNumber == locker.EmployeeNumber && !x.EmployeeNumber.Equals(string.Empty))
+                    .Select(x => x.EmployeeNumber).ToListAsync();
+```
+
+<Info>
+The query uses two conditions:
+1. Match the employee number
+2. Exclude empty strings to allow multiple unassigned lockers
+</Info>
+
+### Empty Employee Numbers
+
+Empty employee numbers are explicitly allowed and excluded from uniqueness validation:
+
+```csharp
+&& !x.EmployeeNumber.Equals(string.Empty)
+```
+
+This allows the system to have multiple available (unassigned) lockers without triggering validation errors.
+
+### Update Validation
+
+When updating a locker, the system recalculates the occupancy status:
+
+```csharp LockersController.cs:82-100
+[HttpPut]
+[Route("{lockerNo}")]
+public async Task<IActionResult> UpdateLocker([FromRoute] string lockerNo, [FromBody] LockerInfo locker)
+{
+    var existingLocker = await lockersDbContext.Lockers.FirstOrDefaultAsync(x => x.LockerNo == lockerNo);
+
+    if (existingLocker != null)
+    {
+        existingLocker.EmployeeNumber = locker.EmployeeNumber;
+        existingLocker.LockerNo = locker.LockerNo;
+        existingLocker.Size = locker.Size;
+        existingLocker.Location = locker.Location;
+        existingLocker.IsEmpty = locker.EmployeeNumber != string.Empty ? false : true;
+
+        await lockersDbContext.SaveChangesAsync();
+
+        return Ok(existingLocker);
+    }
+
+    return NotFound("Locker not found");
+}
+```
+
+<Note>
+The update logic recalculates `IsEmpty` based on the new employee number, ensuring status accuracy after modifications.
+</Note>
+
+## Business Logic Summary
+
+The employee tracking system implements several key business rules:
+
+<CardGroup cols={2}>
+  <Card title="One-to-One Relationship" icon="link">
+    Each employee can have maximum one locker assigned
+  </Card>
+  <Card title="Automatic Status" icon="robot">
+    Occupancy status is calculated automatically from employee assignments
+  </Card>
+  <Card title="Unique Validation" icon="shield-check">
+    Employee numbers must be unique across all occupied lockers
+  </Card>
+  <Card title="Optional Assignment" icon="user-slash">
+    Lockers can exist without employee assignments
+  </Card>
+</CardGroup>
+
+### Assignment Flow
+
+<Steps>
+  <Step title="User enters employee number">
+    The employee number is captured in the form field
+  </Step>
+  <Step title="Backend validates uniqueness">
+    The system checks if the employee already has a locker
+  </Step>
+  <Step title="Calculate occupancy status">
+    `IsEmpty` is set based on whether an employee number exists
+  </Step>
+  <Step title="Save to database">
+    The locker is created/updated with the validated assignment
+  </Step>
+  <Step title="Visual update">
+    The dashboard refreshes to show the new occupancy status
+  </Step>
+</Steps>
+
+## Unassigning Employees
+
+To unassign an employee from a locker, simply clear the employee number field when updating:
+
+1. Click on the locker number to populate the form
+2. Clear the "Employee No" field (leave it empty)
+3. Submit the form
+
+The backend will automatically:
+- Set `IsEmpty = true`
+- Update the locker's occupancy status
+- Change the visual indicator to green
+
+```csharp LockersController.cs:92
+existingLocker.IsEmpty = locker.EmployeeNumber != string.Empty ? false : true;
+```
+
+<Info>
+Clearing an employee assignment frees up that employee to be assigned to a different locker.
+</Info>

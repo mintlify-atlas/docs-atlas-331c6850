@@ -1,0 +1,151 @@
+---
+title: 'API Overview'
+description: 'Introduction to the Locker Management REST API'
+---
+
+## Introduction
+
+The Locker Management API is a RESTful service built with .NET Core 6.0 that provides comprehensive functionality for managing locker assignments and availability. This API enables you to create, read, update, and delete locker records, as well as track employee assignments and locker availability.
+
+## Base URL
+
+The API is accessible at:
+
+```
+https://your-domain.com/api
+```
+
+All endpoints are prefixed with `/api/lockers`.
+
+## Authentication
+
+This API currently does not require authentication. All endpoints are publicly accessible. CORS is enabled with a permissive policy that allows any origin, method, and header.
+
+<Note>
+  In a production environment, it is recommended to implement proper authentication and restrict CORS to specific origins.
+</Note>
+
+## API Structure
+
+The API follows REST conventions with the base route `/api/lockers`. All endpoints use standard HTTP methods (GET, POST, PUT, DELETE) and return JSON responses.
+
+### Base Route
+
+```
+/api/lockers
+```
+
+## Available Endpoints
+
+<CardGroup cols={2}>
+  <Card title="Get All Lockers" icon="list" href="/api/lockers/get-all">
+    Retrieve a list of all lockers, ordered by locker number
+  </Card>
+  
+  <Card title="Get Locker" icon="magnifying-glass" href="/api/lockers/get-single">
+    Retrieve details of a specific locker by locker number
+  </Card>
+  
+  <Card title="Add Locker" icon="plus" href="/api/lockers/create">
+    Create a new locker entry in the system
+  </Card>
+  
+  <Card title="Update Locker" icon="pen" href="/api/lockers/update">
+    Update an existing locker's information
+  </Card>
+  
+  <Card title="Delete Locker" icon="trash" href="/api/lockers/delete">
+    Remove a locker from the system
+  </Card>
+</CardGroup>
+
+## Response Format
+
+All API responses are returned in JSON format. The API uses standard HTTP status codes to indicate the success or failure of requests.
+
+### Locker Object
+
+The primary data model is the `LockerInfo` object with the following structure:
+
+```json
+{
+  "lockerNo": "string",
+  "employeeNumber": "string",
+  "size": 0,
+  "location": "string",
+  "isEmpty": true
+}
+```
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `lockerNo` | string | Unique identifier for the locker (Primary Key) |
+| `employeeNumber` | string | Employee number assigned to the locker (nullable) |
+| `size` | integer | Size of the locker |
+| `location` | string | Physical location of the locker |
+| `isEmpty` | boolean | Indicates whether the locker is available |
+
+## HTTP Status Codes
+
+The API uses standard HTTP status codes:
+
+| Status Code | Description |
+|-------------|-------------|
+| `200 OK` | Request successful |
+| `201 Created` | Resource successfully created |
+| `400 Bad Request` | Invalid request or validation error |
+| `404 Not Found` | Resource not found |
+| `500 Internal Server Error` | Server error |
+
+## Error Handling
+
+When an error occurs, the API returns an appropriate HTTP status code along with an error message.
+
+### Common Error Responses
+
+**404 Not Found**
+```json
+"Locker not found"
+```
+
+**400 Bad Request**
+```json
+{
+  "message": "Employee number {number} already exists"
+}
+```
+
+```json
+{
+  "message": "Locker number {number} already exists"
+}
+```
+
+## Swagger Documentation
+
+Interactive API documentation is available via Swagger UI when running in development mode. Swagger provides a user-friendly interface to explore and test all API endpoints.
+
+To access Swagger:
+
+1. Run the API in development mode
+2. Navigate to `/swagger` in your browser
+3. Use the interactive UI to test endpoints
+
+<Info>
+  Swagger UI is only available in the development environment for security purposes.
+</Info>
+
+## Database
+
+The API uses SQL Server with Entity Framework Core for data persistence. The connection string is configured in the application settings under `LockersDbConnectionString`.
+
+## Getting Started
+
+To start using the API:
+
+1. Ensure the API is running and accessible
+2. Review the available endpoints in the cards above
+3. Make HTTP requests to the appropriate endpoints
+4. Handle responses according to the HTTP status codes
+
+For detailed information about each endpoint, click on the respective cards above or navigate to the specific endpoint documentation pages.
